@@ -88,6 +88,7 @@ func (r *Rover) Move(instructions string) (*Position, error) {
 		case 'F':
 			r.step(1)
 		case 'B':
+			r.step(-1)
 		default:
 
 		}

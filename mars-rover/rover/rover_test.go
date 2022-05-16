@@ -18,6 +18,14 @@ func TestDrop(t *testing.T) {
 }
 
 func TestMove(t *testing.T) {
+	check := func(t *testing.T, instructions string, initialPosition, finalPosition *Position) {
+		rover := Rover{}
+		_, _ = rover.Drop(initialPosition.X, initialPosition.Y, initialPosition.Dir)
+
+		position, err := rover.Move(instructions)
+		assert.NoError(t, err)
+		assert.Equal(t, finalPosition, position)
+	}
 
 	t.Run("before drop", func(t *testing.T) {
 		rover := Rover{}
@@ -28,25 +36,15 @@ func TestMove(t *testing.T) {
 	})
 
 	t.Run("after drop", func(t *testing.T) {
-		rover := Rover{}
-		_, _ = rover.Drop(2, 5, North{})
-
-		position, err := rover.Move("")
-		expectedPosition := &Position{2, 5, North{}}
-
-		assert.NoError(t, err)
-		assert.Equal(t, expectedPosition, position)
+		initialPosition := &Position{2, 5, North{}}
+		finalPosition := &Position{2, 5, North{}}
+		check(t, "", initialPosition, finalPosition)
 	})
 
 	t.Run("turn left", func(t *testing.T) {
-		rover := Rover{}
-		_, _ = rover.Drop(2, 5, North{})
-
-		position, err := rover.Move("L")
-		expectedPosition := &Position{2, 5, West{}}
-
-		assert.NoError(t, err)
-		assert.Equal(t, expectedPosition, position)
+		initialPosition := &Position{2, 5, North{}}
+		finalPosition := &Position{2, 5, West{}}
+		check(t, "L", initialPosition, finalPosition)
 	})
 
 	t.Run("turn left twice", func(t *testing.T) {
@@ -113,6 +111,19 @@ func TestMove(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, expectedPosition, position)
+	})
+
+	t.Run("move backward from north", func(t *testing.T) {
+
+		rover := Rover{}
+		_, _ = rover.Drop(2, 5, North{})
+
+		position, err := rover.Move("B")
+		expectedPosition := &Position{2, 4, North{}}
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedPosition, position)
+
 	})
 
 }
