@@ -115,8 +115,25 @@ func (warehouse *Warehouse) RemoveCDs(title string, copies int) error {
 }
 
 func (warehouse *Warehouse) Sell(processor PaymentProcessor, title string, copies int) error {
-	if err := processor.Pay(10); err != nil {
+	cd, err := warehouse.SearchByTitle(title)
+	if err != nil {
+		return err
+	}
+
+	warehouse.mu.Lock()
+	cdCount, ok := warehouse.Stock[title]
+	warehouse.mu.Unlock()
+	if !ok || cdCount < copies {
+		return ErrOutOfStock
+	}
+
+	totalAmount := float64(copies) * cd.Price
+
+	if err = processor.Pay(totalAmount); err != nil {
 		return ErrPaymentFailed
 	}
-	return nil
+
+	err = warehouse.RemoveCDs(title, copies)
+
+	return err
 }

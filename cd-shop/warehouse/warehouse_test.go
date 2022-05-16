@@ -100,21 +100,35 @@ func Test_WarehouseSearchCD(t *testing.T) {
 
 func Test_WarehouseSell(t *testing.T) {
 	warehouse := Warehouse{}
-	darkSide := CD{Title: "The Dark Side of the Moon", Artist: "Pink Floyd"}
+	darkSide := CD{Title: "The Dark Side of the Moon", Artist: "Pink Floyd", Price: 30.0}
 	warehouse.Add(darkSide, 10)
+
+	t.Run("fail when title cd not found", func(t *testing.T) {
+		err := warehouse.Sell(CreditCard{}, "Closer", 10)
+		assert.ErrorIs(t, err, ErrCDNotFound)
+	})
+
+	t.Run("fail when out of stock", func(t *testing.T) {
+		err := warehouse.Sell(CreditCard{}, darkSide.Title, 100)
+		assert.ErrorIs(t, err, ErrOutOfStock)
+	})
 
 	t.Run("accept payment and reduce stock", func(t *testing.T) {
 		err := warehouse.Sell(CreditCard{}, darkSide.Title, 10)
 		assert.NoError(t, err)
+
+		totalCDsLeft := warehouse.GetStock(darkSide.Title)
+		assert.Equal(t, 0, totalCDsLeft)
 	})
 
 	t.Run("do not sell when payment fails", func(t *testing.T) {
+		warehouse.Add(darkSide, 10)
 		ctrl := gomock.NewController(t)
 
 		defer ctrl.Finish()
 
 		errPaymentProcessor := mock_warehouse.NewMockPaymentProcessor(ctrl)
-		errPaymentProcessor.EXPECT().Pay(10.0).Return(ErrPaymentFailed)
+		errPaymentProcessor.EXPECT().Pay(300.0).Return(ErrPaymentFailed)
 
 		err := warehouse.Sell(errPaymentProcessor, darkSide.Title, 10)
 		assert.ErrorIs(t, ErrPaymentFailed, err)
