@@ -1,6 +1,8 @@
 package warehouse
 
 import (
+	mock_warehouse "codecraft/cd-shop/warehouse/mock"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -81,4 +83,27 @@ func Test_WarehouseSearchCD(t *testing.T) {
 		assert.Equal(t, 60, copies)
 	})
 
+}
+
+func Test_WarehouseSell(t *testing.T) {
+	warehouse := Warehouse{}
+	darkSide := CD{Title: "The Dark Side of the Moon", Artist: "Pink Floyd"}
+	warehouse.Add(darkSide, 10)
+
+	t.Run("accept payment and reduce stock", func(t *testing.T) {
+		err := warehouse.Sell(CreditCard{}, darkSide.Title, 10)
+		assert.NoError(t, err)
+	})
+
+	t.Run("do not sell when payment fails", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+
+		defer ctrl.Finish()
+
+		errPaymentProcessor := mock_warehouse.NewMockPaymentProcessor(ctrl)
+		errPaymentProcessor.EXPECT().Pay(10.0).Return(ErrPaymentFailed)
+
+		err := warehouse.Sell(errPaymentProcessor, darkSide.Title, 10)
+		assert.ErrorIs(t, ErrPaymentFailed, err)
+	})
 }

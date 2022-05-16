@@ -1,13 +1,26 @@
 package warehouse
 
+//go:generate mockgen -source=warehouse.go -destination=mock/mock_warehouse.go
+
 import (
 	"errors"
 	"sync"
 )
 
 var (
-	ErrOutOfStock = errors.New("insufficient stock")
+	ErrOutOfStock    = errors.New("insufficient stock")
+	ErrPaymentFailed = errors.New("payment failed")
 )
+
+type PaymentProcessor interface {
+	Pay(float64) error
+}
+
+func (c CreditCard) Pay(f float64) error {
+	return nil
+}
+
+type CreditCard struct{}
 
 type CD struct {
 	Title  string
@@ -75,5 +88,12 @@ func (warehouse *Warehouse) RemoveCDs(title string, copies int) error {
 		return ErrOutOfStock
 	}
 
+	return nil
+}
+
+func (warehouse *Warehouse) Sell(processor PaymentProcessor, title string, copies int) error {
+	if err := processor.Pay(10); err != nil {
+		return ErrPaymentFailed
+	}
 	return nil
 }
