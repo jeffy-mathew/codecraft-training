@@ -3,18 +3,36 @@ package rover
 import "errors"
 
 var (
-	ErrInvalidDirection = errors.New("invalid direction")
-	ErrNotDropped       = errors.New("rover not dropped")
+	ErrNotDropped = errors.New("rover not dropped")
 )
 
-type Direction string
+type Direction interface {
+	GetNumber() int
+}
 
-const (
-	North Direction = "N"
-	East  Direction = "E"
-	South Direction = "S"
-	West  Direction = "W"
-)
+type North struct{}
+
+func (n North) GetNumber() int {
+	return 0
+}
+
+type East struct{}
+
+func (e East) GetNumber() int {
+	return 1
+}
+
+type South struct{}
+
+func (s South) GetNumber() int {
+	return 2
+}
+
+type West struct{}
+
+func (w West) GetNumber() int {
+	return 3
+}
 
 type Rover struct {
 	pos *Position
@@ -27,9 +45,6 @@ type Position struct {
 }
 
 func (r *Rover) Drop(x, y int, direction Direction) (*Position, error) {
-	if !isValidDirection(direction) {
-		return nil, ErrInvalidDirection
-	}
 
 	r.pos = &Position{x, y, direction}
 	return r.pos, nil
@@ -40,9 +55,21 @@ func (r *Rover) Move(instructions string) (*Position, error) {
 		return nil, ErrNotDropped
 	}
 
-	return r.pos, nil
-}
+	//for _, instruction := range instructions {
+	//
+	//	switch instruction {
+	//	case 'L':
+	//		if r.pos.Dir == North {
+	//
+	//		} else if r.pos.Dir == West
+	//	case 'R':
+	//	case 'F':
+	//	case 'B':
+	//	default:
+	//
+	//	}
+	//
+	//}
 
-func isValidDirection(direction Direction) bool {
-	return direction == North || direction == East || direction == West || direction == South
+	return r.pos, nil
 }
