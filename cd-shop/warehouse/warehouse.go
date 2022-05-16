@@ -15,8 +15,9 @@ type CD struct {
 }
 
 type Warehouse struct {
-	mu    sync.Mutex
-	Stock map[string]int
+	mu        sync.Mutex
+	Stock     map[string]int
+	ArtistCDs map[string]int
 }
 
 func (warehouse *Warehouse) Add(cd CD, copies int) {
@@ -32,10 +33,30 @@ func (warehouse *Warehouse) Add(cd CD, copies int) {
 	} else {
 		warehouse.Stock[cd.Title] = copies
 	}
+
+	if warehouse.ArtistCDs == nil {
+		warehouse.ArtistCDs = make(map[string]int)
+	}
+
+	if artistCount, ok := warehouse.ArtistCDs[cd.Artist]; ok {
+		warehouse.ArtistCDs[cd.Artist] = artistCount + copies
+	} else {
+		warehouse.ArtistCDs[cd.Artist] = copies
+	}
 }
 
 func (warehouse *Warehouse) GetStock(title string) int {
 	count := warehouse.Stock[title]
+
+	return count
+}
+
+func (warehouse *Warehouse) SearchByTitle(title string) int {
+	return warehouse.GetStock(title)
+}
+
+func (warehouse *Warehouse) SearchByArtist(artist string) int {
+	count := warehouse.ArtistCDs[artist]
 
 	return count
 }

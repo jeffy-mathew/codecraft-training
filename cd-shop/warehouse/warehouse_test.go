@@ -58,3 +58,27 @@ func Test_WarehouseRemoveCDs(t *testing.T) {
 		assert.ErrorIs(t, err, ErrOutOfStock)
 	})
 }
+
+func Test_WarehouseSearchCD(t *testing.T) {
+	warehouse := Warehouse{}
+	darkSide := CD{Title: "The Dark Side of the Moon", Artist: "Pink Floyd"}
+	warehouse.Add(darkSide, 10)
+
+	brainDamage := CD{Title: "Brain damage", Artist: "Pink Floyd"}
+	warehouse.Add(brainDamage, 20)
+
+	breathe := CD{Title: "Breathe", Artist: "Pink Floyd"}
+	warehouse.Add(breathe, 30)
+
+	t.Run("search by title", func(t *testing.T) {
+
+		copies := warehouse.SearchByTitle(breathe.Title)
+		assert.Equal(t, 30, copies)
+	})
+
+	t.Run("search by artist", func(t *testing.T) {
+		copies := warehouse.SearchByArtist(brainDamage.Artist)
+		assert.Equal(t, 60, copies)
+	})
+
+}
