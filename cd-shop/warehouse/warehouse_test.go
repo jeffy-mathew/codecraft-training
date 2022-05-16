@@ -63,24 +63,37 @@ func Test_WarehouseRemoveCDs(t *testing.T) {
 
 func Test_WarehouseSearchCD(t *testing.T) {
 	warehouse := Warehouse{}
-	darkSide := CD{Title: "The Dark Side of the Moon", Artist: "Pink Floyd"}
+	darkSide := CD{Title: "The Dark Side of the Moon", Artist: "Pink Floyd", Price: 30.0}
 	warehouse.Add(darkSide, 10)
 
-	brainDamage := CD{Title: "Brain damage", Artist: "Pink Floyd"}
+	brainDamage := CD{Title: "Brain damage", Artist: "Pink Floyd", Price: 45.0}
 	warehouse.Add(brainDamage, 20)
 
-	breathe := CD{Title: "Breathe", Artist: "Pink Floyd"}
+	breathe := CD{Title: "Breathe", Artist: "Pink Floyd", Price: 25.0}
 	warehouse.Add(breathe, 30)
 
 	t.Run("search by title", func(t *testing.T) {
+		cd, err := warehouse.SearchByTitle(breathe.Title)
+		assert.NoError(t, err)
+		assert.Equal(t, breathe, cd)
+	})
 
-		copies := warehouse.SearchByTitle(breathe.Title)
-		assert.Equal(t, 30, copies)
+	t.Run("no CD found for title", func(t *testing.T) {
+		cd, err := warehouse.SearchByTitle("Country Song")
+		assert.ErrorIs(t, err, ErrCDNotFound)
+		assert.Empty(t, cd)
+	})
+
+	t.Run("no CDs found for artist", func(t *testing.T) {
+		cd, err := warehouse.SearchByArtist("avicii")
+		assert.ErrorIs(t, err, ErrCDNotFound)
+		assert.Empty(t, cd)
 	})
 
 	t.Run("search by artist", func(t *testing.T) {
-		copies := warehouse.SearchByArtist(brainDamage.Artist)
-		assert.Equal(t, 60, copies)
+		artistCDs, err := warehouse.SearchByArtist(brainDamage.Artist)
+		assert.NoError(t, err)
+		assert.ElementsMatch(t, []CD{brainDamage, darkSide, breathe}, artistCDs)
 	})
 
 }

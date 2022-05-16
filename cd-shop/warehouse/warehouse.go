@@ -10,6 +10,7 @@ import (
 var (
 	ErrOutOfStock    = errors.New("insufficient stock")
 	ErrPaymentFailed = errors.New("payment failed")
+	ErrCDNotFound    = errors.New("CD(s) not found")
 )
 
 type PaymentProcessor interface {
@@ -25,12 +26,14 @@ type CreditCard struct{}
 type CD struct {
 	Title  string
 	Artist string
+	Price  float64
 }
 
 type Warehouse struct {
 	mu        sync.Mutex
 	Stock     map[string]int
-	ArtistCDs map[string]int
+	ArtistCDs map[string][]CD
+	TitleCDs  map[string]CD
 }
 
 func (warehouse *Warehouse) Add(cd CD, copies int) {
@@ -48,30 +51,50 @@ func (warehouse *Warehouse) Add(cd CD, copies int) {
 	}
 
 	if warehouse.ArtistCDs == nil {
-		warehouse.ArtistCDs = make(map[string]int)
+		warehouse.ArtistCDs = make(map[string][]CD)
 	}
 
-	if artistCount, ok := warehouse.ArtistCDs[cd.Artist]; ok {
-		warehouse.ArtistCDs[cd.Artist] = artistCount + copies
+	if artistCDs, ok := warehouse.ArtistCDs[cd.Artist]; ok {
+		newArtistCDs := append(artistCDs, cd)
+		warehouse.ArtistCDs[cd.Artist] = newArtistCDs
 	} else {
-		warehouse.ArtistCDs[cd.Artist] = copies
+		warehouse.ArtistCDs[cd.Artist] = []CD{cd}
+	}
+
+	if warehouse.TitleCDs == nil {
+		warehouse.TitleCDs = make(map[string]CD)
+	}
+
+	if _, ok := warehouse.TitleCDs[cd.Artist]; ok {
+		warehouse.TitleCDs[cd.Title] = cd
+	} else {
+		warehouse.TitleCDs[cd.Title] = cd
 	}
 }
 
 func (warehouse *Warehouse) GetStock(title string) int {
+	warehouse.mu.Lock()
+	defer warehouse.mu.Unlock()
 	count := warehouse.Stock[title]
-
 	return count
 }
 
-func (warehouse *Warehouse) SearchByTitle(title string) int {
-	return warehouse.GetStock(title)
+func (warehouse *Warehouse) SearchByTitle(title string) (CD, error) {
+	warehouse.mu.Lock()
+	defer warehouse.mu.Unlock()
+	if cd, ok := warehouse.TitleCDs[title]; ok {
+		return cd, nil
+	}
+	return CD{}, ErrCDNotFound
 }
 
-func (warehouse *Warehouse) SearchByArtist(artist string) int {
-	count := warehouse.ArtistCDs[artist]
-
-	return count
+func (warehouse *Warehouse) SearchByArtist(artist string) ([]CD, error) {
+	warehouse.mu.Lock()
+	defer warehouse.mu.Unlock()
+	if cds, ok := warehouse.ArtistCDs[artist]; ok {
+		return cds, nil
+	}
+	return nil, ErrCDNotFound
 }
 
 func (warehouse *Warehouse) RemoveCDs(title string, copies int) error {
