@@ -48,16 +48,83 @@ func TestMove(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, expectedPosition, position)
 	})
-	//
-	//t.Run("turn left twice", func(t *testing.T) {
-	//	rover := Rover{}
-	//	_, _ = rover.Drop(2, 5, North)
-	//
-	//	position, err := rover.Move("LL")
-	//	expectedPosition := &Position{2, 5, South}
-	//
-	//	assert.NoError(t, err)
-	//	assert.Equal(t, expectedPosition, position)
-	//})
+
+	t.Run("turn left twice", func(t *testing.T) {
+		rover := Rover{}
+		_, _ = rover.Drop(2, 5, North{})
+
+		position, err := rover.Move("LL")
+		expectedPosition := &Position{2, 5, South{}}
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedPosition, position)
+	})
+
+	t.Run("turn right", func(t *testing.T) {
+		rover := Rover{}
+		_, _ = rover.Drop(2, 5, South{})
+
+		position, err := rover.Move("R")
+		expectedPosition := &Position{2, 5, West{}}
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedPosition, position)
+	})
+
+	t.Run("move forward from south", func(t *testing.T) {
+		rover := Rover{}
+		_, _ = rover.Drop(2, 5, South{})
+
+		position, err := rover.Move("F")
+		expectedPosition := &Position{2, 4, South{}}
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedPosition, position)
+	})
+
+	t.Run("move forward from north", func(t *testing.T) {
+		rover := Rover{}
+		_, _ = rover.Drop(2, 5, North{})
+
+		position, err := rover.Move("F")
+		expectedPosition := &Position{2, 6, North{}}
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedPosition, position)
+	})
+
+	t.Run("move forward from west", func(t *testing.T) {
+		rover := Rover{}
+		_, _ = rover.Drop(2, 5, West{})
+
+		position, err := rover.Move("F")
+		expectedPosition := &Position{1, 5, West{}}
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedPosition, position)
+	})
+
+	t.Run("move forward from east", func(t *testing.T) {
+		rover := Rover{}
+		_, _ = rover.Drop(2, 5, East{})
+
+		position, err := rover.Move("F")
+		expectedPosition := &Position{3, 5, East{}}
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedPosition, position)
+	})
+
+}
+
+func TestTurn(t *testing.T) {
+	rover := Rover{}
+	_, _ = rover.Drop(2, 5, North{})
+
+	t.Run("left", func(t *testing.T) {
+
+		rover.Turn(-1)
+		assert.Equal(t, West{}, rover.pos.Dir)
+	})
 
 }

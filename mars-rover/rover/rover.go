@@ -1,9 +1,18 @@
 package rover
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	ErrNotDropped = errors.New("rover not dropped")
+)
+
+const (
+	NorthNumber = iota
+	EastNumber
+	SouthNumber
+	WestNumber
 )
 
 type Direction interface {
@@ -13,25 +22,39 @@ type Direction interface {
 type North struct{}
 
 func (n North) GetNumber() int {
-	return 0
+	return NorthNumber
 }
 
 type East struct{}
 
 func (e East) GetNumber() int {
-	return 1
+	return EastNumber
 }
 
 type South struct{}
 
 func (s South) GetNumber() int {
-	return 2
+	return SouthNumber
 }
 
 type West struct{}
 
 func (w West) GetNumber() int {
-	return 3
+	return WestNumber
+}
+
+func getDirectionByNumber(currDir int) Direction {
+	switch currDir {
+	case 0:
+		return North{}
+	case 1:
+		return East{}
+	case 2:
+		return South{}
+	case 3:
+		return West{}
+	}
+	return nil
 }
 
 type Rover struct {
@@ -55,21 +78,35 @@ func (r *Rover) Move(instructions string) (*Position, error) {
 		return nil, ErrNotDropped
 	}
 
-	//for _, instruction := range instructions {
-	//
-	//	switch instruction {
-	//	case 'L':
-	//		if r.pos.Dir == North {
-	//
-	//		} else if r.pos.Dir == West
-	//	case 'R':
-	//	case 'F':
-	//	case 'B':
-	//	default:
-	//
-	//	}
-	//
-	//}
+	for _, instruction := range instructions {
+
+		switch instruction {
+		case 'L':
+			r.Turn(-1)
+		case 'R':
+			r.Turn(1)
+		case 'F':
+			switch r.pos.Dir.GetNumber() {
+			case NorthNumber:
+				r.pos.Y++
+			case EastNumber:
+				r.pos.X++
+			case SouthNumber:
+				r.pos.Y--
+			case WestNumber:
+				r.pos.X--
+			}
+		case 'B':
+		default:
+
+		}
+
+	}
 
 	return r.pos, nil
+}
+
+func (r *Rover) Turn(turn int) {
+	newPos := (r.pos.Dir.GetNumber() + 4 + turn) % 4
+	r.pos.Dir = getDirectionByNumber(newPos)
 }
