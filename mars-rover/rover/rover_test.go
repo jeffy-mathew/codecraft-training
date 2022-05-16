@@ -123,7 +123,7 @@ func TestTurn(t *testing.T) {
 
 	t.Run("left", func(t *testing.T) {
 
-		rover.Turn(-1)
+		rover.turn(-1)
 		assert.Equal(t, West{}, rover.pos.Dir)
 	})
 

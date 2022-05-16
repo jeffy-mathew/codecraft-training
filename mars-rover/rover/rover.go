@@ -82,9 +82,9 @@ func (r *Rover) Move(instructions string) (*Position, error) {
 
 		switch instruction {
 		case 'L':
-			r.Turn(-1)
+			r.turn(-1)
 		case 'R':
-			r.Turn(1)
+			r.turn(1)
 		case 'F':
 			r.step(1)
 		case 'B':
@@ -97,7 +97,7 @@ func (r *Rover) Move(instructions string) (*Position, error) {
 	return r.pos, nil
 }
 
-func (r *Rover) Turn(turn int) {
+func (r *Rover) turn(turn int) {
 	newPos := (r.pos.Dir.GetNumber() + 4 + turn) % 4
 	r.pos.Dir = getDirectionByNumber(newPos)
 }
