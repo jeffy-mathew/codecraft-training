@@ -86,16 +86,7 @@ func (r *Rover) Move(instructions string) (*Position, error) {
 		case 'R':
 			r.Turn(1)
 		case 'F':
-			switch r.pos.Dir.GetNumber() {
-			case NorthNumber:
-				r.pos.Y++
-			case EastNumber:
-				r.pos.X++
-			case SouthNumber:
-				r.pos.Y--
-			case WestNumber:
-				r.pos.X--
-			}
+			r.step(1)
 		case 'B':
 		default:
 
@@ -109,4 +100,17 @@ func (r *Rover) Move(instructions string) (*Position, error) {
 func (r *Rover) Turn(turn int) {
 	newPos := (r.pos.Dir.GetNumber() + 4 + turn) % 4
 	r.pos.Dir = getDirectionByNumber(newPos)
+}
+
+func (r *Rover) step(count int) {
+	switch r.pos.Dir.GetNumber() {
+	case NorthNumber:
+		r.pos.Y += count
+	case EastNumber:
+		r.pos.X += count
+	case SouthNumber:
+		r.pos.Y -= count
+	case WestNumber:
+		r.pos.X -= count
+	}
 }
