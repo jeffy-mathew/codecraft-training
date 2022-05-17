@@ -27,73 +27,60 @@ type CD struct {
 	Title  string
 	Artist string
 	Price  float64
+	stock  int
 }
 
 type Warehouse struct {
-	mu        sync.Mutex
-	Stock     map[string]int
-	ArtistCDs map[string][]CD
-	TitleCDs  map[string]CD
+	mu  sync.Mutex
+	cds []*CD
 }
 
-func (warehouse *Warehouse) Add(cd CD, copies int) {
+func (warehouse *Warehouse) Add(cd *CD) {
 	warehouse.mu.Lock()
 	defer warehouse.mu.Unlock()
 
-	if warehouse.Stock == nil {
-		warehouse.Stock = make(map[string]int)
+	for i, existingCD := range warehouse.cds {
+		if existingCD.Title == cd.Title {
+			warehouse.cds[i].stock += cd.stock
+			return
+		}
 	}
 
-	if cdCount, ok := warehouse.Stock[cd.Title]; ok {
-		warehouse.Stock[cd.Title] = cdCount + copies
-	} else {
-		warehouse.Stock[cd.Title] = copies
-	}
+	warehouse.cds = append(warehouse.cds, cd)
 
-	if warehouse.ArtistCDs == nil {
-		warehouse.ArtistCDs = make(map[string][]CD)
-	}
-
-	if artistCDs, ok := warehouse.ArtistCDs[cd.Artist]; ok {
-		newArtistCDs := append(artistCDs, cd)
-		warehouse.ArtistCDs[cd.Artist] = newArtistCDs
-	} else {
-		warehouse.ArtistCDs[cd.Artist] = []CD{cd}
-	}
-
-	if warehouse.TitleCDs == nil {
-		warehouse.TitleCDs = make(map[string]CD)
-	}
-
-	if _, ok := warehouse.TitleCDs[cd.Artist]; ok {
-		warehouse.TitleCDs[cd.Title] = cd
-	} else {
-		warehouse.TitleCDs[cd.Title] = cd
-	}
 }
 
-func (warehouse *Warehouse) GetStock(title string) int {
-	warehouse.mu.Lock()
-	defer warehouse.mu.Unlock()
-	count := warehouse.Stock[title]
-	return count
+func (cd *CD) GetStock() int {
+	return cd.stock
 }
 
-func (warehouse *Warehouse) SearchByTitle(title string) (CD, error) {
+func (warehouse *Warehouse) SearchByTitle(title string) (*CD, error) {
 	warehouse.mu.Lock()
 	defer warehouse.mu.Unlock()
-	if cd, ok := warehouse.TitleCDs[title]; ok {
-		return cd, nil
+	for _, cd := range warehouse.cds {
+		if cd.Title == title {
+			return cd, nil
+		}
 	}
-	return CD{}, ErrCDNotFound
+	return nil, ErrCDNotFound
 }
 
-func (warehouse *Warehouse) SearchByArtist(artist string) ([]CD, error) {
+func (warehouse *Warehouse) SearchByArtist(artist string) ([]*CD, error) {
 	warehouse.mu.Lock()
 	defer warehouse.mu.Unlock()
-	if cds, ok := warehouse.ArtistCDs[artist]; ok {
-		return cds, nil
+
+	var artistCDs []*CD
+
+	for i := 0; i < len(warehouse.cds); i++ {
+		if warehouse.cds[i].Artist == artist {
+			artistCDs = append(artistCDs, warehouse.cds[i])
+		}
 	}
+
+	if len(artistCDs) > 0 {
+		return artistCDs, nil
+	}
+
 	return nil, ErrCDNotFound
 }
 
@@ -101,15 +88,18 @@ func (warehouse *Warehouse) RemoveCDs(title string, copies int) error {
 	warehouse.mu.Lock()
 	defer warehouse.mu.Unlock()
 
-	if cdCount, ok := warehouse.Stock[title]; ok {
-		if cdCount < copies {
-			return ErrOutOfStock
+	var selectedCD *CD
+	for i := 0; i < len(warehouse.cds); i++ {
+		if warehouse.cds[i].Title == title {
+			selectedCD = warehouse.cds[i]
 		}
+	}
 
-		warehouse.Stock[title] = cdCount - copies
-	} else {
+	if selectedCD == nil || selectedCD.stock < copies {
 		return ErrOutOfStock
 	}
+
+	selectedCD.stock -= copies
 
 	return nil
 }
@@ -121,9 +111,9 @@ func (warehouse *Warehouse) Sell(processor PaymentProcessor, title string, copie
 	}
 
 	warehouse.mu.Lock()
-	cdCount, ok := warehouse.Stock[title]
+	cdCount := cd.GetStock()
 	warehouse.mu.Unlock()
-	if !ok || cdCount < copies {
+	if cdCount < copies {
 		return ErrOutOfStock
 	}
 

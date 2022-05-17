@@ -11,9 +11,9 @@ func Test_WarehouseAddCDs(t *testing.T) {
 	t.Run("add a copies of a CD", func(t *testing.T) {
 		warehouse := Warehouse{}
 
-		cd := CD{Title: "The Dark Side of the Moon", Artist: "Pink Floyd"}
-		warehouse.Add(cd, 1)
-		totalCDs := warehouse.GetStock(cd.Title)
+		cd := CD{Title: "The Dark Side of the Moon", Artist: "Pink Floyd", stock: 1}
+		warehouse.Add(&cd)
+		totalCDs := cd.GetStock()
 
 		assert.Equal(t, 1, totalCDs)
 	})
@@ -21,9 +21,9 @@ func Test_WarehouseAddCDs(t *testing.T) {
 	t.Run("add 10 copies of a CD", func(t *testing.T) {
 		warehouse := Warehouse{}
 
-		cd := CD{Title: "The Dark Side of the Moon", Artist: "Pink Floyd"}
-		warehouse.Add(cd, 10)
-		totalCDs := warehouse.GetStock(cd.Title)
+		cd := CD{Title: "The Dark Side of the Moon", Artist: "Pink Floyd", stock: 10}
+		warehouse.Add(&cd)
+		totalCDs := cd.GetStock()
 
 		assert.Equal(t, 10, totalCDs)
 	})
@@ -33,8 +33,8 @@ func Test_WarehouseRemoveCDs(t *testing.T) {
 	t.Run("remove a copy of a CD", func(t *testing.T) {
 		warehouse := Warehouse{}
 
-		cd := CD{Title: "The Dark Side of the Moon", Artist: "Pink Floyd"}
-		warehouse.Add(cd, 10)
+		cd := CD{Title: "The Dark Side of the Moon", Artist: "Pink Floyd", stock: 10}
+		warehouse.Add(&cd)
 		err := warehouse.RemoveCDs(cd.Title, 1)
 		assert.NoError(t, err)
 
@@ -53,8 +53,8 @@ func Test_WarehouseRemoveCDs(t *testing.T) {
 	t.Run("remove copies more than in stock ", func(t *testing.T) {
 		warehouse := Warehouse{}
 
-		cd := CD{Title: "The Dark Side of the Moon", Artist: "Pink Floyd"}
-		warehouse.Add(cd, 10)
+		cd := CD{Title: "The Dark Side of the Moon", Artist: "Pink Floyd", stock: 10}
+		warehouse.Add(&cd)
 
 		err := warehouse.RemoveCDs(cd.Title, 11)
 		assert.ErrorIs(t, err, ErrOutOfStock)
@@ -63,19 +63,19 @@ func Test_WarehouseRemoveCDs(t *testing.T) {
 
 func Test_WarehouseSearchCD(t *testing.T) {
 	warehouse := Warehouse{}
-	darkSide := CD{Title: "The Dark Side of the Moon", Artist: "Pink Floyd", Price: 30.0}
-	warehouse.Add(darkSide, 10)
+	darkSide := CD{Title: "The Dark Side of the Moon", Artist: "Pink Floyd", Price: 30.0, stock: 10}
+	warehouse.Add(&darkSide)
 
-	brainDamage := CD{Title: "Brain damage", Artist: "Pink Floyd", Price: 45.0}
-	warehouse.Add(brainDamage, 20)
+	brainDamage := CD{Title: "Brain damage", Artist: "Pink Floyd", Price: 45.0, stock: 20}
+	warehouse.Add(&brainDamage)
 
-	breathe := CD{Title: "Breathe", Artist: "Pink Floyd", Price: 25.0}
-	warehouse.Add(breathe, 30)
+	breathe := CD{Title: "Breathe", Artist: "Pink Floyd", Price: 25.0, stock: 30}
+	warehouse.Add(&breathe)
 
 	t.Run("search by title", func(t *testing.T) {
 		cd, err := warehouse.SearchByTitle(breathe.Title)
 		assert.NoError(t, err)
-		assert.Equal(t, breathe, cd)
+		assert.Equal(t, breathe, *cd)
 	})
 
 	t.Run("no CD found for title", func(t *testing.T) {
@@ -91,17 +91,17 @@ func Test_WarehouseSearchCD(t *testing.T) {
 	})
 
 	t.Run("search by artist", func(t *testing.T) {
-		artistCDs, err := warehouse.SearchByArtist(brainDamage.Artist)
+		artistCDs, err := warehouse.SearchByArtist("Pink Floyd")
 		assert.NoError(t, err)
-		assert.ElementsMatch(t, []CD{brainDamage, darkSide, breathe}, artistCDs)
+		assert.ElementsMatch(t, []*CD{&brainDamage, &darkSide, &breathe}, artistCDs)
 	})
 
 }
 
 func Test_WarehouseSell(t *testing.T) {
 	warehouse := Warehouse{}
-	darkSide := CD{Title: "The Dark Side of the Moon", Artist: "Pink Floyd", Price: 30.0}
-	warehouse.Add(darkSide, 10)
+	darkSide := CD{Title: "The Dark Side of the Moon", Artist: "Pink Floyd", Price: 30.0, stock: 10}
+	warehouse.Add(&darkSide)
 
 	t.Run("fail when title cd not found", func(t *testing.T) {
 		err := warehouse.Sell(CreditCard{}, "Closer", 10)
@@ -124,12 +124,14 @@ func Test_WarehouseSell(t *testing.T) {
 		err := warehouse.Sell(paymentProcessor, darkSide.Title, 10)
 		assert.NoError(t, err)
 
-		totalCDsLeft := warehouse.GetStock(darkSide.Title)
+		totalCDsLeft := darkSide.GetStock()
 		assert.Equal(t, 0, totalCDsLeft)
 	})
 
 	t.Run("do not sell when payment fails", func(t *testing.T) {
-		warehouse.Add(darkSide, 10)
+		newDarkSide := darkSide
+		newDarkSide.stock = 10
+		warehouse.Add(&newDarkSide)
 		ctrl := gomock.NewController(t)
 
 		defer ctrl.Finish()
