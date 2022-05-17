@@ -2,7 +2,7 @@
 // Source: warehouse.go
 
 // Package mock_warehouse is a generated GoMock package.
-package mock_warehouse
+package mock
 
 import (
 	reflect "reflect"

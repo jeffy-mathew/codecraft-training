@@ -31,8 +31,9 @@ type CD struct {
 }
 
 type Warehouse struct {
-	mu  sync.Mutex
-	cds []*CD
+	chart Charts
+	mu    sync.Mutex
+	cds   []*CD
 }
 
 func (warehouse *Warehouse) Add(cd *CD) {
@@ -130,6 +131,11 @@ func (warehouse *Warehouse) Sell(processor PaymentProcessor, cd *CD, copies int)
 	}
 
 	err := warehouse.RemoveCDs(cd.Title, copies)
+	if err != nil {
+		return err
+	}
 
-	return err
+	warehouse.chart.Sale(selectedCD.Title, selectedCD.Artist, copies)
+
+	return nil
 }

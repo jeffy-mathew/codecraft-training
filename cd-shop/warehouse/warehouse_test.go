@@ -1,7 +1,7 @@
 package warehouse
 
 import (
-	mock_warehouse "codecraft/cd-shop/warehouse/mock"
+	"codecraft/cd-shop/warehouse/mock"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -118,7 +118,7 @@ func Test_WarehouseSell(t *testing.T) {
 
 		defer ctrl.Finish()
 
-		paymentProcessor := mock_warehouse.NewMockPaymentProcessor(ctrl)
+		paymentProcessor := mock.NewMockPaymentProcessor(ctrl)
 		paymentProcessor.EXPECT().Pay(300.0).Return(nil)
 
 		err := warehouse.Sell(paymentProcessor, &CD{Title: "The Dark Side of the Moon"}, 10)
@@ -126,6 +126,27 @@ func Test_WarehouseSell(t *testing.T) {
 
 		totalCDsLeft := darkSide.GetStock()
 		assert.Equal(t, 0, totalCDsLeft)
+	})
+
+	t.Run("notify chart of sales", func(t *testing.T) {
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		chartMock := mock.NewMockCharts(ctrl)
+
+		newDarkSide := darkSide
+		warehouse := Warehouse{
+			chart: chartMock,
+		}
+
+		warehouse.Add(&newDarkSide)
+		copies := 2
+
+		chartMock.EXPECT().Sale(newDarkSide.Title, newDarkSide.Artist, copies)
+
+		err := warehouse.Sell(CreditCard{}, &newDarkSide, copies)
+		assert.NoError(t, err)
 	})
 
 	t.Run("do not sell when payment fails", func(t *testing.T) {
@@ -136,7 +157,7 @@ func Test_WarehouseSell(t *testing.T) {
 
 		defer ctrl.Finish()
 
-		errPaymentProcessor := mock_warehouse.NewMockPaymentProcessor(ctrl)
+		errPaymentProcessor := mock.NewMockPaymentProcessor(ctrl)
 		errPaymentProcessor.EXPECT().Pay(300.0).Return(ErrPaymentFailed)
 
 		err := warehouse.Sell(errPaymentProcessor, &CD{Title: "The Dark Side of the Moon"}, 10)
