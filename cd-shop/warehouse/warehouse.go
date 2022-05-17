@@ -104,26 +104,32 @@ func (warehouse *Warehouse) RemoveCDs(title string, copies int) error {
 	return nil
 }
 
-func (warehouse *Warehouse) Sell(processor PaymentProcessor, title string, copies int) error {
-	cd, err := warehouse.SearchByTitle(title)
-	if err != nil {
-		return err
-	}
+func (warehouse *Warehouse) Sell(processor PaymentProcessor, cd *CD, copies int) error {
 
 	warehouse.mu.Lock()
-	cdCount := cd.GetStock()
+	var selectedCD *CD
+	for i := 0; i < len(warehouse.cds); i++ {
+		if warehouse.cds[i].Title == cd.Title {
+			selectedCD = warehouse.cds[i]
+		}
+	}
 	warehouse.mu.Unlock()
-	if cdCount < copies {
+
+	if selectedCD == nil {
+		return ErrCDNotFound
+	}
+
+	if selectedCD.stock < copies {
 		return ErrOutOfStock
 	}
 
-	totalAmount := float64(copies) * cd.Price
+	totalAmount := float64(copies) * selectedCD.Price
 
-	if err = processor.Pay(totalAmount); err != nil {
+	if err := processor.Pay(totalAmount); err != nil {
 		return ErrPaymentFailed
 	}
 
-	err = warehouse.RemoveCDs(title, copies)
+	err := warehouse.RemoveCDs(cd.Title, copies)
 
 	return err
 }

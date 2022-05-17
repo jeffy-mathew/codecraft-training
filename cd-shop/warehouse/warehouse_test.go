@@ -104,12 +104,12 @@ func Test_WarehouseSell(t *testing.T) {
 	warehouse.Add(&darkSide)
 
 	t.Run("fail when title cd not found", func(t *testing.T) {
-		err := warehouse.Sell(CreditCard{}, "Closer", 10)
+		err := warehouse.Sell(CreditCard{}, &CD{Title: "Closer"}, 10)
 		assert.ErrorIs(t, err, ErrCDNotFound)
 	})
 
 	t.Run("fail when out of stock", func(t *testing.T) {
-		err := warehouse.Sell(CreditCard{}, darkSide.Title, 100)
+		err := warehouse.Sell(CreditCard{}, &CD{Title: "The Dark Side of the Moon"}, 100)
 		assert.ErrorIs(t, err, ErrOutOfStock)
 	})
 
@@ -121,7 +121,7 @@ func Test_WarehouseSell(t *testing.T) {
 		paymentProcessor := mock_warehouse.NewMockPaymentProcessor(ctrl)
 		paymentProcessor.EXPECT().Pay(300.0).Return(nil)
 
-		err := warehouse.Sell(paymentProcessor, darkSide.Title, 10)
+		err := warehouse.Sell(paymentProcessor, &CD{Title: "The Dark Side of the Moon"}, 10)
 		assert.NoError(t, err)
 
 		totalCDsLeft := darkSide.GetStock()
@@ -139,7 +139,7 @@ func Test_WarehouseSell(t *testing.T) {
 		errPaymentProcessor := mock_warehouse.NewMockPaymentProcessor(ctrl)
 		errPaymentProcessor.EXPECT().Pay(300.0).Return(ErrPaymentFailed)
 
-		err := warehouse.Sell(errPaymentProcessor, darkSide.Title, 10)
+		err := warehouse.Sell(errPaymentProcessor, &CD{Title: "The Dark Side of the Moon"}, 10)
 		assert.ErrorIs(t, ErrPaymentFailed, err)
 	})
 }
