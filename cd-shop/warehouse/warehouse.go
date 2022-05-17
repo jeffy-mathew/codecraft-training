@@ -1,6 +1,6 @@
 package warehouse
 
-//go:generate mockgen -source=warehouse.go -destination=mock/mock_warehouse.go
+//go:generate mockgen -source=warehouse.go -destination=mock/mock_warehouse.go -package=mock
 
 import (
 	"errors"
@@ -31,9 +31,11 @@ type CD struct {
 }
 
 type Warehouse struct {
-	chart Charts
-	mu    sync.Mutex
-	cds   []*CD
+	chart      Charts
+	rank       Rank
+	competitor Competitor
+	mu         sync.Mutex
+	cds        []*CD
 }
 
 func (warehouse *Warehouse) Add(cd *CD) {
@@ -105,7 +107,7 @@ func (warehouse *Warehouse) RemoveCDs(title string, copies int) error {
 	return nil
 }
 
-func (warehouse *Warehouse) Sell(processor PaymentProcessor, cd *CD, copies int) error {
+func (warehouse *Warehouse) Sell(processor PaymentProcessor, cd *CD, copies int, foo int) error {
 
 	warehouse.mu.Lock()
 	var selectedCD *CD
@@ -124,7 +126,17 @@ func (warehouse *Warehouse) Sell(processor PaymentProcessor, cd *CD, copies int)
 		return ErrOutOfStock
 	}
 
-	totalAmount := float64(copies) * selectedCD.Price
+	offerPrice := selectedCD.Price
+
+	rank := warehouse.rank.Get(selectedCD.Title)
+	if rank < 100 {
+		competitorPrice := warehouse.competitor.Price(selectedCD.Title)
+		if competitorPrice < selectedCD.Price {
+			offerPrice = competitorPrice - 1
+		}
+	}
+
+	totalAmount := float64(copies) * offerPrice
 
 	if err := processor.Pay(totalAmount); err != nil {
 		return ErrPaymentFailed

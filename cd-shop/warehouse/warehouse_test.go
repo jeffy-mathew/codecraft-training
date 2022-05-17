@@ -104,12 +104,12 @@ func Test_WarehouseSell(t *testing.T) {
 	warehouse.Add(&darkSide)
 
 	t.Run("fail when title cd not found", func(t *testing.T) {
-		err := warehouse.Sell(CreditCard{}, &CD{Title: "Closer"}, 10)
+		err := warehouse.Sell(CreditCard{}, &CD{Title: "Closer"}, 10, 0)
 		assert.ErrorIs(t, err, ErrCDNotFound)
 	})
 
 	t.Run("fail when out of stock", func(t *testing.T) {
-		err := warehouse.Sell(CreditCard{}, &CD{Title: "The Dark Side of the Moon"}, 100)
+		err := warehouse.Sell(CreditCard{}, &CD{Title: "The Dark Side of the Moon"}, 100, 0)
 		assert.ErrorIs(t, err, ErrOutOfStock)
 	})
 
@@ -121,7 +121,19 @@ func Test_WarehouseSell(t *testing.T) {
 		paymentProcessor := mock.NewMockPaymentProcessor(ctrl)
 		paymentProcessor.EXPECT().Pay(300.0).Return(nil)
 
-		err := warehouse.Sell(paymentProcessor, &CD{Title: "The Dark Side of the Moon"}, 10)
+		mockRank := mock.NewMockRank(ctrl)
+		mockRank.EXPECT().Get(gomock.Any()).Return(120)
+
+		mockCompetitor := mock.NewMockCompetitor(ctrl)
+
+		mockChart := mock.NewMockCharts(ctrl)
+		mockChart.EXPECT().Sale(gomock.Any(), gomock.Any(), gomock.Any())
+
+		warehouse.competitor = mockCompetitor
+		warehouse.rank = mockRank
+		warehouse.chart = mockChart
+
+		err := warehouse.Sell(paymentProcessor, &CD{Title: "The Dark Side of the Moon"}, 10, 0)
 		assert.NoError(t, err)
 
 		totalCDsLeft := darkSide.GetStock()
@@ -134,18 +146,23 @@ func Test_WarehouseSell(t *testing.T) {
 		defer ctrl.Finish()
 
 		chartMock := mock.NewMockCharts(ctrl)
+		rankMock := mock.NewMockRank(ctrl)
+		rankMock.EXPECT().Get(gomock.Any()).Return(120)
 
-		newDarkSide := darkSide
+		breathe := CD{Title: "Breathe", Artist: "Pink Floyd", Price: 25.0, stock: 30}
+		warehouse.Add(&breathe)
+
 		warehouse := Warehouse{
 			chart: chartMock,
+			rank:  rankMock,
 		}
 
-		warehouse.Add(&newDarkSide)
+		warehouse.Add(&breathe)
 		copies := 2
 
-		chartMock.EXPECT().Sale(newDarkSide.Title, newDarkSide.Artist, copies)
+		chartMock.EXPECT().Sale(breathe.Title, breathe.Artist, copies)
 
-		err := warehouse.Sell(CreditCard{}, &newDarkSide, copies)
+		err := warehouse.Sell(CreditCard{}, &breathe, copies, 0)
 		assert.NoError(t, err)
 	})
 
@@ -159,8 +176,39 @@ func Test_WarehouseSell(t *testing.T) {
 
 		errPaymentProcessor := mock.NewMockPaymentProcessor(ctrl)
 		errPaymentProcessor.EXPECT().Pay(300.0).Return(ErrPaymentFailed)
+		mockRank := mock.NewMockRank(ctrl)
+		mockRank.EXPECT().Get(gomock.Any()).Return(129)
+		warehouse.rank = mockRank
 
-		err := warehouse.Sell(errPaymentProcessor, &CD{Title: "The Dark Side of the Moon"}, 10)
+		err := warehouse.Sell(errPaymentProcessor, &CD{Title: "The Dark Side of the Moon"}, 10, 0)
 		assert.ErrorIs(t, ErrPaymentFailed, err)
 	})
+
+	t.Run("offer 1 pound less than competitors", func(t *testing.T) {
+
+		newDarkSide := darkSide
+		newDarkSide.stock = 10
+		warehouse.Add(&newDarkSide)
+
+		ctrl := gomock.NewController(t)
+		mockRank := mock.NewMockRank(ctrl)
+		mockRank.EXPECT().Get(newDarkSide.Title).Return(5)
+
+		mockCompetitor := mock.NewMockCompetitor(ctrl)
+		mockCompetitor.EXPECT().Price(newDarkSide.Title).Return(20.0)
+
+		chartMock := mock.NewMockCharts(ctrl)
+		chartMock.EXPECT().Sale(gomock.Any(), gomock.Any(), gomock.Any())
+
+		warehouse.chart = chartMock
+		warehouse.rank = mockRank
+		warehouse.competitor = mockCompetitor
+
+		paymentProcessor := mock.NewMockPaymentProcessor(ctrl)
+		paymentProcessor.EXPECT().Pay(38.0).Return(nil)
+
+		err := warehouse.Sell(paymentProcessor, &newDarkSide, 2, 0)
+		assert.NoError(t, err)
+	})
+
 }
