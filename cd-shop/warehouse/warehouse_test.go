@@ -114,7 +114,14 @@ func Test_WarehouseSell(t *testing.T) {
 	})
 
 	t.Run("accept payment and reduce stock", func(t *testing.T) {
-		err := warehouse.Sell(CreditCard{}, darkSide.Title, 10)
+		ctrl := gomock.NewController(t)
+
+		defer ctrl.Finish()
+
+		paymentProcessor := mock_warehouse.NewMockPaymentProcessor(ctrl)
+		paymentProcessor.EXPECT().Pay(300.0).Return(nil)
+
+		err := warehouse.Sell(paymentProcessor, darkSide.Title, 10)
 		assert.NoError(t, err)
 
 		totalCDsLeft := warehouse.GetStock(darkSide.Title)
